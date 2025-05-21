@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simulador de Circuitos AC - RLC Serie</title>
+<style>
+  :root {
+    --primary: #00bcd4;
+    --primary-dark: #0097a7;
+    --secondary: #00e5ff;
+    --background: #121212;
+    --surface: #1f1f1f;
+    --surface-light: #282828;
+    --text-primary: #eee;
+    --text-secondary: #bbb;
+    --success: #00e676;
+    --warning: #ffee58;
+    --error: #ff5252;
+    --pink: #ff4081;
+  }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; 
+    padding: 0;
+    background: var(--background);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.7);
+    position: relative;
+    z-index: 10;
+  }
+
+  header h1 {
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: var(--primary);
+    margin: 0;
+  }
+
+  .tab-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: -1px;
+  }
+
+  .tab-button {
+    background: var(--surface);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 8px 8px 0 0;
+    margin: 0 0.2rem;
+  }
+
+  .tab-button.active {
+    background: var(--surface-light);
+    color: var(--primary);
+    border-bottom: 3px solid var(--primary);
+  }
+
+  .tab-button:hover:not(.active) {
+    color: var(--text-primary);
+    background: #252525;
+  }
+
+  .tab-content {
+    display: none;
+    padding: 1.5rem;
+    background: var(--surface-light);
+    border-radius: 0 0 8px 8px;
+    min-height: 300px;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  #input-section {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,188,212,0.47);
+  }
+
+  #results-section {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,188,212,0.47);
+  }
+
+  .canvas-fullscreen {
+    background: var(--background);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 0 15px rgba(0,188,212,0.67);
+    width: 100%;
+    height: auto;
+    max-height: 75vh;
+    aspect-ratio: 16/9;
+  }
+
+  .canvas-fullscreen canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  h2 {
+    margin-top: 0;
+    color: var(--secondary);
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    color: var(--secondary);
+    font-size: 1.2rem;
+    margin-top: 0;
+  }
+
+  label {
+    display: block;
+    margin-top: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    margin-top: 0.5rem;
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border 0.3s ease;
+  }
+
+  input[type="number"]:focus {
+    border-color: var(--primary);
+    outline: none;
+  }
+
+  button {
+    background: var(--primary);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #121212;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1.5rem;
+  }
+
+  button:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  #results {
+    font-size: 1rem;
+    background: var(--background);
+    padding: 1.2rem;
+    border-radius: 8px;
+    color: #c7ffd8;
+    font-family: monospace;
+    white-space: pre-wrap;
+    line-height: 1.6;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+  }
+
+  #results::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  #results::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 1.2rem;
+    font-size: 0.9rem;
+    color: #666;
+    background: var(--surface);
+    margin-top: auto;
+  }
+
+  @media (min-width: 992px) {
+    main {
+      grid-template-columns: 400px 1fr;
+      padding: 1.5rem;
+    }
+    
+    #input-section {
+      position: sticky;
+      top: 1.5rem;
+      align-self: start;
+      height: fit-content;
+    }
+    
+    .tab-container {
+      justify-content: flex-start;
+    }
+  }
+
+  /* Animaciones */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tab-content {
+    animation: fadeIn 0.3s ease-out;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador de Circuitos AC - Circuito Serie RLC</h1>
+</header>
+
+<main>
+  <section id="input-section">
+    <h2>Parámetros del circuito</h2>
+    <form id="circuit-form">
+      <label for="voltage">Voltaje pico (V) [Vp]:</label>
+      <input type="number" id="voltage" name="voltage" min="0" value="10" step="0.1" required />
+
+      <label for="frequency">Frecuencia (Hz) [f]:</label>
+      <input type="number" id="frequency" name="frequency" min="0" value="50" step="0.1" required />
+
+      <label for="resistor">Resistencia (Ω) [R]:</label>
+      <input type="number" id="resistor" name="resistor" min="0" value="50" step="0.1" required />
+
+      <label for="inductor">Inductancia (mH) [L]:</label>
+      <input type="number" id="inductor" name="inductor" min="0" value="100" step="0.1" required />
+
+      <label for="capacitor">Capacitancia (μF) [C]:</label>
+      <input type="number" id="capacitor" name="capacitor" min="0" value="20" step="0.1" required />
+
+      <button type="submit">Simular circuito</button>
+    </form>
+  </section>
+
+  <section id="results-section">
+    <div class="tab-container">
+      <button class="tab-button active" data-tab="results">Resultados</button>
+      <button class="tab-button" data-tab="waveform">Ondas</button>
+      <button class="tab-button" data-tab="phasor">Fasores</button>
+    </div>
+
+    <div id="results" class="tab-content active">
+      <h2>Análisis del Circuito</h2>
+      <div id="results-content">Complete los parámetros y presione "Simular circuito".</div>
+    </div>
+
+    <div id="waveform" class="tab-content">
+      <h2>Formas de Onda Temporales</h2>
+      <div class="canvas-fullscreen">
+        <canvas id="waveform-canvas"></canvas>
+      </div>
+    </div>
+
+    <div id="phasor" class="tab-content">
+      <h2>Diagrama Fasorial</h2>
+      <div class="canvas-fullscreen">
+        <canvas id="phasor-canvas"></canvas>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Simulación de circuito serie RLC en AC con representación fasorial y de potencia. Hecho por Yerson.
+</footer>
+
+<script>
+  (function() {
+    'use strict';
+
+    // Sistema de pestañas
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        // Remover clase active de todos
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        
+        // Agregar active al seleccionado
+        button.classList.add('active');
+        const tabId = button.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+
+    // Helper: Complex number class
+    class Complex {
+      constructor(re, im) {
+        this.re = re;
+        this.im = im;
+      }
+      add(b) {
+        return new Complex(this.re + b.re, this.im + b.im);
+      }
+      sub(b) {
+        return new Complex(this.re - b.re, this.im - b.im);
+      }
+      mul(b) {
+        return new Complex(this.re * b.re - this.im * b.im, this.re * b.im + this.im * b.re);
+      }
+      div(b) {
+        const denom = b.re * b.re + b.im * b.im;
+        return new Complex(
+          (this.re * b.re + this.im * b.im) / denom,
+          (this.im * b.re - this.re * b.im) / denom
+        );
+      }
+      mag() {
+        return Math.sqrt(this.re * this.re + this.im * this.im);
+      }
+      phase() {
+        return Math.atan2(this.im, this.re);
+      }
+      conj() {
+        return new Complex(this.re, -this.im);
+      }
+      toString() {
+        return `${this.re.toFixed(3)} ${this.im >= 0 ? '+' : '-'} ${Math.abs(this.im).toFixed(3)}j`;
+      }
+    }
+
+    // Constants
+    const TWO_PI = 2 * Math.PI;
+
+    // DOM Elements
+    const form = document.getElementById('circuit-form');
+    const resultsContent = document.getElementById('results-content');
+    const waveformCanvas = document.getElementById('waveform-canvas');
+    const waveformCtx = waveformCanvas.getContext('2d');
+    const phasorCanvas = document.getElementById('phasor-canvas');
+    const phasorCtx = phasorCanvas.getContext('2d');
+
+    // Set canvas dimensions
+    function resizeCanvases() {
+      const waveformContainer = document.querySelector('#waveform .canvas-fullscreen');
+      const phasorContainer = document.querySelector('#phasor .canvas-fullscreen');
+      
+      waveformCanvas.width = waveformContainer.clientWidth - 40;
+      waveformCanvas.height = waveformContainer.clientHeight - 40;
+      
+      phasorCanvas.width = phasorContainer.clientWidth - 40;
+      phasorCanvas.height = phasorContainer.clientHeight - 40;
+    }
+
+    window.addEventListener('resize', () => {
+      resizeCanvases();
+      if(form.voltage.value) form.dispatchEvent(new Event('submit'));
+    });
+
+    function clearCanvas(ctx, canvas) {
+      ctx.fillStyle = '#121212';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawAxes(ctx, canvas) {
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      // x-axis
+      ctx.moveTo(0, canvas.height / 2);
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      // y-axis ticks
+      for (let x = 0; x <= canvas.width; x += 50) {
+        ctx.moveTo(x, canvas.height / 2 - 5);
+        ctx.lineTo(x, canvas.height / 2 + 5);
+      }
+      ctx.stroke();
+    }
+
+    function plotWaveform(data, color, label, dashed = false) {
+      waveformCtx.strokeStyle = color;
+      waveformCtx.lineWidth = 2;
+      if(dashed) waveformCtx.setLineDash([5, 3]);
+      else waveformCtx.setLineDash([]);
+      
+      waveformCtx.beginPath();
+      const scaleX = waveformCanvas.width / data.length;
+      const offsetY = waveformCanvas.height / 2;
+      const maxAmp = Math.max(1, ...data.map(v => Math.abs(v)));
+      const scaleY = (waveformCanvas.height / 2 - 30) / maxAmp;
+
+      for (let i = 0; i < data.length; i++) {
+        const x = i * scaleX;
+        const y = offsetY - data[i] * scaleY;
+        if (i === 0) waveformCtx.moveTo(x, y);
+        else waveformCtx.lineTo(x, y);
+      }
+      waveformCtx.stroke();
+
+      // Label
+      waveformCtx.fillStyle = color;
+      waveformCtx.font = '14px Arial';
+      const textY = 20 + 20 * ['#00bcd4','#ff5252','#ffee58','#ff4081','#00e676'].indexOf(color);
+      waveformCtx.fillText(label, 10, textY);
+      
+      // Valor pico
+      const peakValue = Math.max(...data.map(v => Math.abs(v))).toFixed(2);
+      waveformCtx.fillText(`Max: ${peakValue}`, 100, textY);
+    }
+
+    function generateWaveform(amplitude, freq, phaseRad, timeArray) {
+      return timeArray.map(t => amplitude * Math.sin(TWO_PI * freq * t + phaseRad));
+    }
+
+    function drawPhasorDiagram(V_phasor, I_phasor, V_R, V_L, V_C) {
+      clearCanvas(phasorCtx, phasorCanvas);
+      
+      // Configuración
+      const centerX = phasorCanvas.width / 2;
+      const centerY = phasorCanvas.height / 2;
+      const maxMagnitude = Math.max(
+        V_phasor.mag(), I_phasor.mag(), V_R.mag(), V_L.mag(), V_C.mag()
+      );
+      const scale = Math.min(centerX, centerY) / (maxMagnitude * 1.2);
+      
+      // Ejes
+      phasorCtx.strokeStyle = '#444';
+      phasorCtx.lineWidth = 1;
+      phasorCtx.beginPath();
+      phasorCtx.moveTo(0, centerY);
+      phasorCtx.lineTo(phasorCanvas.width, centerY);
+      phasorCtx.moveTo(centerX, 0);
+      phasorCtx.lineTo(centerX, phasorCanvas.height);
+      phasorCtx.stroke();
+      
+      // Función para dibujar un fasor
+      const drawPhasor = (phasor, color, label) => {
+        const x = centerX + phasor.re * scale;
+        const y = centerY - phasor.im * scale;
+        
+        phasorCtx.strokeStyle = color;
+        phasorCtx.lineWidth = 2;
+        phasorCtx.beginPath();
+        phasorCtx.moveTo(centerX, centerY);
+        phasorCtx.lineTo(x, y);
+        phasorCtx.stroke();
+        
+        // Flecha
+        const angle = Math.atan2(centerY - y, x - centerX);
+        phasorCtx.beginPath();
+        phasorCtx.moveTo(x, y);
+        phasorCtx.lineTo(x - 10 * Math.cos(angle - Math.PI/6), y + 10 * Math.sin(angle - Math.PI/6));
+        phasorCtx.moveTo(x, y);
+        phasorCtx.lineTo(x - 10 * Math.cos(angle + Math.PI/6), y + 10 * Math.sin(angle + Math.PI/6));
+        phasorCtx.stroke();
+        
+        // Etiqueta
+        phasorCtx.fillStyle = color;
+        phasorCtx.font = '12px Arial';
+        phasorCtx.fillText(label, x + 5, y - 5);
+      };
+      
+      // Dibujar fasores
+      drawPhasor(V_phasor, '#00bcd4', 'V');
+      drawPhasor(I_phasor, '#ff5252', 'I');
+      drawPhasor(V_R, '#ffee58', 'V_R');
+      drawPhasor(V_L, '#ff4081', 'V_L');
+      drawPhasor(V_C, '#00e676', 'V_C');
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      // Read inputs
+      const Vp = parseFloat(form.voltage.value);
+      const f = parseFloat(form.frequency.value);
+      const R = parseFloat(form.resistor.value);
+      const L_mH = parseFloat(form.inductor.value);
+      const C_uF = parseFloat(form.capacitor.value);
+
+      if (Vp <= 0 || f <= 0 || R < 0 || L_mH < 0 || C_uF < 0) {
+        resultsContent.textContent = 'Por favor, ingrese valores válidos y mayores que cero donde corresponda.';
+        return;
+      }
+
+      const w = TWO_PI * f;
+      const L = L_mH / 1000; // H
+      const C = C_uF / 1e6; // F
+
+      // Compute impedances
+      const Z_R = new Complex(R, 0);
+      const Z_L = new Complex(0, w * L);
+      const Z_C = new Complex(0, -1 / (w * C));
+
+      // Total impedance Z = R + j(wL - 1 / wC)
+      const Z_total = Z_R.add(Z_L).add(Z_C);
+
+      // Phasor current I = V / Z
+      const V_phasor = new Complex(Vp, 0);
+      const I_phasor = V_phasor.div(Z_total);
+
+      // Voltages across elements: V_R = I * Z_R etc
+      const V_R = I_phasor.mul(Z_R);
+      const V_L = I_phasor.mul(Z_L);
+      const V_C = I_phasor.mul(Z_C);
+
+      // Cálculo de potencia
+      const S = V_phasor.mul(I_phasor.conj()); // Potencia compleja
+      const P = S.re; // Potencia activa (W)
+      const Q = S.im; // Potencia reactiva (VAR)
+      const fp = Math.cos(Z_total.phase()); // Factor de potencia
+
+      // Prepare results text
+      const resText = `
+IMPEDANCIAS:
+  Z_total = ${Z_total.toString()} Ω
+  (Magnitud: ${Z_total.mag().toFixed(2)} Ω, Fase: ${(Z_total.phase() * 180/Math.PI).toFixed(1)}°)
+
+CORRIENTE:
+  I = ${I_phasor.toString()} A
+  (Amplitud: ${I_phasor.mag().toFixed(4)} A, Fase: ${(I_phasor.phase() * 180/Math.PI).toFixed(1)}°)
+  i(t) = ${I_phasor.mag().toFixed(2)}·sin(${(w).toFixed(2)}t ${I_phasor.phase() >= 0 ? '+' : ''}${(I_phasor.phase()).toFixed(3)})
+
+VOLTAJES:
+  Fuente: v(t) = ${Vp.toFixed(2)}·sin(${(w).toFixed(2)}t)
+  En R: v_R(t) = ${V_R.mag().toFixed(2)}·sin(${(w).toFixed(2)}t ${V_R.phase() >= 0 ? '+' : ''}${(V_R.phase()).toFixed(3)})
+  En L: v_L(t) = ${V_L.mag().toFixed(2)}·sin(${(w).toFixed(2)}t ${V_L.phase() >= 0 ? '+' : ''}${(V_L.phase()).toFixed(3)})
+  En C: v_C(t) = ${V_C.mag().toFixed(2)}·sin(${(w).toFixed(2)}t ${V_C.phase() >= 0 ? '+' : ''}${(V_C.phase()).toFixed(3)})
+
+POTENCIA:
+  Aparente (S): ${S.mag().toFixed(2)} VA
+  Activa (P): ${P.toFixed(2)} W
+  Reactiva (Q): ${Q.toFixed(2)} VAR
+  Factor de Potencia: ${fp.toFixed(3)} ${fp < 0 ? 'capacitivo' : 'inductivo'}
+      `;
+
+      resultsContent.textContent = resText.trim();
+
+      // Generate time array for 2 periods
+      const periods = 2;
+      const sampleRate = 1000;
+      const dt = 1 / (f * sampleRate);
+      let timeArr = [];
+      for (let i = 0; i < periods * sampleRate; i++) {
+        timeArr.push(i * dt);
+      }
+
+      // Clear and prepare canvases
+      resizeCanvases();
+      clearCanvas(waveformCtx, waveformCanvas);
+      drawAxes(waveformCtx, waveformCanvas);
+
+      // Generate waveforms
+      const I_waveform = generateWaveform(I_phasor.mag(), f, I_phasor.phase(), timeArr);
+      const V_waveform = generateWaveform(Vp, f, 0, timeArr);
+      const V_R_waveform = generateWaveform(V_R.mag(), f, V_R.phase(), timeArr);
+      const V_L_waveform = generateWaveform(V_L.mag(), f, V_L.phase(), timeArr);
+      const V_C_waveform = generateWaveform(V_C.mag(), f, V_C.phase(), timeArr);
+
+      // Plot waveforms
+      plotWaveform(V_waveform, '#00bcd4', 'V fuente (Vp)');
+      plotWaveform(I_waveform, '#ff5252', 'Corriente I (A)');
+      plotWaveform(V_R_waveform, '#ffee58', 'V en R');
+      plotWaveform(V_L_waveform, '#ff4081', 'V en L');
+      plotWaveform(V_C_waveform, '#00e676', 'V en C');
+
+      // Draw phasor diagram
+      drawPhasorDiagram(V_phasor, I_phasor, V_R, V_L, V_C);
+    });
+
+    // Initial setup
+    resizeCanvases();
+    clearCanvas(waveformCtx, waveformCanvas);
+    drawAxes(waveformCtx, waveformCanvas);
+    clearCanvas(phasorCtx, phasorCanvas);
+  })();
+</script>
+</body>
+</html>
